@@ -1,0 +1,114 @@
+USE PB_DEMODATA
+
+-- Task 1
+
+CREATE OR REPLACE TABLE Shopping_cart
+(
+  Product VARCHAR NOT NULL,
+  Quantity integer NOT NULL,
+  Unit_price integer NOT NULL
+);
+
+INSERT INTO Shopping_cart VALUES ('Oats', 3, 55);
+INSERT INTO Shopping_cart VALUES ('Jam', 2, 55);
+INSERT INTO Shopping_cart VALUES ('Fruits', 7, 30);
+INSERT INTO Shopping_cart VALUES ('Jaggery', 1, 20);
+INSERT INTO Shopping_cart VALUES ('Milk', 2, 60);
+INSERT INTO Shopping_cart VALUES ('Honey', 3, 45);
+INSERT INTO Shopping_cart VALUES ('Oats', 1, 50);
+INSERT INTO Shopping_cart VALUES ('Maida', 4, 40);
+INSERT INTO Shopping_cart VALUES ('Poha', 5, 35);
+INSERT INTO Shopping_cart VALUES ('Chips', 10, 20);
+
+
+SELECT * FROM Shopping_cart
+
+ALTER TABLE Shopping_cart
+ADD COLUMN Total_price INTEGER
+
+UPDATE Shopping_cart
+SET Total_price = Quantity * Unit_price
+
+SELECT Product,Total_price FROM Shopping_cart
+
+
+
+-- Task 2
+
+CREATE OR REPLACE TABLE Phones
+(
+ Name varchar(20) not null unique,
+  Phone_number integer not null unique
+);
+
+INSERT INTO Phones VALUES ('Rahul', 0196576974);
+INSERT INTO Phones VALUES ('Sahi', 9657697401);
+INSERT INTO Phones VALUES ('Lena', 9657690174);
+INSERT INTO Phones VALUES ('Raj', 956776974);
+INSERT INTO Phones VALUES ('Vipul', 8676576974);
+INSERT INTO Phones VALUES ('Sonu',9476576974);
+INSERT INTO Phones VALUES ('Jay',9657623974);
+
+CREATE OR REPLACE TABLE Cells
+(
+  ID integer not null unique,
+  Caller integer not null,
+  Callee integer not null,
+  Duration integer not null
+);
+
+INSERT INTO Cells VALUES (010, 0196576974 , 9657623974, 7);
+INSERT INTO Cells VALUES (011, 9657623974, 8676576974, 4 );
+INSERT INTO Cells VALUES (012, 956776974,8676576974,3 );
+INSERT INTO Cells VALUES (013, 9657623974, 956776974, 2);
+INSERT INTO Cells VALUES (014, 8676576974,956776974, 3 );
+INSERT INTO Cells VALUES (015,956776974 , 0196576974, 5);
+INSERT INTO Cells VALUES (016,8676576974, 9476576974, 6);
+
+SELECT * FROM Phones
+SELECT * FROM Cells
+
+
+SELECT Name FROM Phones p JOIN Cells c ON p.Phone_number = c.Caller
+UNION 
+SELECT Name FROM Phones p JOIN Cells c ON p.Phone_number = c.Callee
+GROUP BY Name
+HAVING SUM(Duration) >= 10;
+
+-- Task 3
+
+CREATE OR REPLACE TABLE Transactions
+(
+ Amount integer not null,
+  Date date not null
+);
+
+INSERT INTO Transactions VALUES (1000, '2020-01-06');
+INSERT INTO Transactions VALUES (-10, '2020-01-14');
+INSERT INTO Transactions VALUES (-75, '2020-01-20');
+INSERT INTO Transactions VALUES (-5, '2020-01-25');
+INSERT INTO Transactions VALUES (-4, '2020-01-29');
+INSERT INTO Transactions VALUES (2000, '2020-03-10');
+INSERT INTO Transactions VALUES (-75, '2020-03-12');
+INSERT INTO Transactions VALUES (-2040, '2020-03-15');
+INSERT INTO Transactions VALUES (-50, '2020-03-15');
+INSERT INTO Transactions VALUES (200, '2020-10-17');
+INSERT INTO Transactions VALUES (-200, '2020-10-17');
+
+SELECT SUM(d_amount) + SUM(c_amount) + SUM(Fee)
+FROM (
+SELECT to_char(Date, 'MM') MM,
+	   to_char(Date, 'Month') Month,
+	SUM(CASE WHEN Amount > 0 THEN Amount  ELSE 0 END) as d_amount,
+    SUM(CASE WHEN Amount < 0 THEN Amount ELSE 0 END) as c_amount
+	SUM(CASE WHEN Amount < 0 THEN 1 ELSE 0 END) as c_tr
+    CASE WHEN SUM(CASE WHEN Amount > 0 THEN Amount  ELSE 0 END) < 100 
+    or 
+    SUM(CASE WHEN Amount < 0 THEN 1 ELSE 0 END) < 3 THEN 15 ELSE 0 END Fee
+FROM ( SELECT * FROM Transactions
+     UNION ALL
+     SELECT to_date(level, 'MM'), 0
+     FROM DUAL
+     connect by level <=12);
+GROUP BY to_char(Date, 'MM'), to_char(Date, 'Month');
+ORDER BY 1;
