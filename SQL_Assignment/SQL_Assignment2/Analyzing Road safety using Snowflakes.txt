@@ -1,0 +1,72 @@
+USE warehouse PB_ASSIGNMENT
+
+CREATE database Accidents
+USE Accidents
+
+CREATE OR REPLACE table PB_Accidents(
+Accident_Index varchar(30),
+Accident_Severity int)
+
+CREATE OR REPLACE TABLE vehicles(
+	accident_index VARCHAR(13),
+    vehicle_type VARCHAR(50)
+);
+
+-- First: for vehicle types, create new csv by extracting data from Vehicle Type sheet from Road-Accident-Safety-Data-Guide.xls */
+CREATE OR REPLACE TABLE vehicle_types(
+	vehicle_code INT,
+    vehicle_type VARCHAR(130)
+);
+
+
+SELECT * FROM PB_Accidents
+SELECT * FROM vehicles
+SELECT * FROM vehicle_types
+
+
+/*  ----- 𝗔𝗽𝗽𝗿𝗼𝗮𝗰𝗵/𝗣𝗿𝗼𝗷𝗲𝗰𝘁 𝗜𝗱𝗲𝗮
+Use aggregate functions in SQL and Python to answer the following sample questions:
+1. Evaluate the median severity value of accidents caused by various Motorcycles.
+2. Evaluate Accident Severity and Total Accidents per Vehicle Type
+3. Calculate the Average Severity by vehicle type.
+4. Calculate the Average Severity and Total Accidents by Motorcycle
+*/
+
+  ------------------------------------------------------------------------------
+  /* 1. Evaluate the median severity value of accidents caused by various Motorcycles.*/
+  
+SELECT median(A.Accident_Severity), COUNT(VT.vehicle_type) AS "Number of Accidents"
+FROM PB_Accidents A
+JOIN vehicles V ON A.Accident_Index = V.accident_index
+JOIN vehicle_types VT ON V.vehicle_type = VT.vehicle_code
+WHERE VT.vehicle_type LIKE '%Motorcycle%'
+ORDER BY 2;
+
+ /* 2. Evaluate Accident Severity and Total Accidents per Vehicle Type */
+SELECT vt.vehicle_type AS "vehicle type",COUNT(a.Accident_Severity) AS "severity", COUNT(vt.vehicle_type) AS "number of accidents"
+FROM PB_Accidents a
+JOIN vehicles v ON a.Accident_Index = v.accident_index
+JOIN vehicle_types vt ON v.vehicle_type = vt.vehicle_code
+GROUP BY 1
+ORDER BY 2,3;
+
+
+ /* 3. Calculate the Average Severity by vehicle type. */
+SELECT vt.vehicle_type AS "Vehicle Type", AVG(a.Accident_Severity) AS "Average Severity", COUNT(vt.vehicle_type) AS "Number of Accidents"
+FROM PB_Accidents a
+JOIN vehicles v ON a.Accident_Index = v.accident_index
+JOIN vehicle_types vt ON v.vehicle_type = vt.vehicle_code
+GROUP BY 1
+ORDER BY 2,3;
+
+ 
+ 
+ /* 4. Calculate the Average Severity and Total Accidents by Motorcycle*/
+  
+SELECT VT.vehicle_type AS "Vehicle Type", AVG(A.Accident_Severity) AS "Average Severity", COUNT(VT.vehicle_type) AS "Number of Accidents"
+FROM PB_Accidents A
+JOIN vehicles V ON A.Accident_Index = V.accident_index
+JOIN vehicle_types VT ON V.vehicle_type = VT.vehicle_code
+WHERE VT.vehicle_type LIKE '%Motorcycle%'
+GROUP BY 1
+ORDER BY 2,3;
