@@ -1,0 +1,116 @@
+USE warehouse PB_ASSIGNMENT
+
+Create database New
+
+use database New
+
+
+create or replace table CPI_Data_Annual(
+Year int,
+Country varchar(50),
+Value int)
+
+select * from CPI_Data_Annual
+drop table CPI_Data_Annual
+
+create or replace table Exchange_Rate_Annual(
+Year int,
+Country varchar(50),
+Value int)
+
+create or replace table Exports_Merchandise_Annual(
+Year int,
+Country varchar(50),
+Value int)
+
+
+-- CAGR OF CPI DATA ---
+
+create or replace table CPI_Data_CAGR as
+(select Country, year, avg(cagr) as CPI_CAGR
+from
+(
+select Country, Year, Value, POWER(Value/nullif(prev_Value,0),(1/29)) - 1 as CAGR
+from
+   (select *, lag(Value, 1,0) over 
+              (partition by Country order by Year) as prev_Value
+    from CPI_Data_Annual) as cpi
+) t
+group by Country, year)
+
+
+create or replace table ER1_CAGR as
+(SELECT Country, Year,
+       avg(Value) / nullif(COUNT(*),0)- 1 AS ER_CAGR
+  FROM (SELECT Country, Year,
+               COALESCE((Value/nullif(prev_Value,0) - 1), 0) as Value
+          FROM (SELECT Country,Year, Value,
+                       LAG(Value, 1) OVER(PARTITION BY Country ORDER BY Year) AS prev_Value
+                  FROM Exchange_Rate_Annual))
+ GROUP BY 1,2)
+
+
+drop table ER1_CAGR
+
+-- CAGR OF Exchange Rate ---
+create or replace table ER1_CAGR as
+(select Country,year, avg(CAGR) as ER_CAGR
+from
+(
+select Country, Year,  Value, POWER(Value/CAST(nullif(prev_Value,0) AS INT),(1/29)) - 1 as cagr
+from
+   (select *, lag(Value, 1) over 
+              (partition by Country order by Year) as prev_Value
+    from Exchange_Rate_Annual) as ER
+) t1
+group by 1,2)
+
+
+
+-- CAGR OF Exports_Merchandise_Annual ---
+create or replace table EM1_CAGR as
+(select Country,year, avg(cagr) as EM_CAGR
+from
+(
+select Country, Year, Value, POWER(Value/nullif(prev_Value,0),(1/29)) - 1 as cagr
+from
+   (select *, lag(Value, 1,0) over 
+              (partition by Country order by Year) as prev_Value
+    from Exports_Merchandise_Annual) as EM
+) t2
+group by 1,2)
+
+select * from Overall_cagr_values
+
+
+create or replace table Overall_cagr_values as
+(SELECT * FROM CPI_Data_CAGR CP
+LEFT OUTER JOIN ER1_CAGR ER USING (COUNTRY)
+LEFT OUTER JOIN EM1_CAGR EM USING (COUNTRY))
+
+--- YOY OF CPI DATA --
+create or replace table YOY_CPI as
+(select country, year,value, lag(value) over(partition by country order by Year) as previous_value1,
+((value/ nullif(previous_value1,0))-1) as YOY_DIFFERENCE_CPI
+from CPI_Data_Annual);
+
+
+create or replace table YOY_ER as
+(select country, year,value, lag(value) over(partition by country order by Year) as previous_value2,
+((value/ nullif(previous_value2,0))-1) as YOY_DIFFERENCE_ER
+from Exchange_Rate_Annual)
+
+SELECT * FROM YOY_EM
+
+create or replace table YOY_EM as
+(select country, year,value, lag(value) over(partition by country order by Year) as previous_value3,
+((value/ nullif(previous_value3,0))-1) as YOY_DIFFERENCE_EM
+from Exports_Merchandise_Annual)
+
+create or replace table Overall_YOY_values as
+(SELECT country, year, YOY_DIFFERENCE_CPI, YOY_DIFFERENCE_ER, YOY_DIFFERENCE_EM FROM YOY_CPI cpi
+LEFT OUTER JOIN YOY_ER USING (Country)
+LEFT OUTER JOIN YOY_EM USING (Country)
+order by year)
+
+SELECT * FROM Overall_YOY_values
